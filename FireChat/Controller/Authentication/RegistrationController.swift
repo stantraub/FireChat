@@ -107,45 +107,40 @@ class RegistrationController: UIViewController {
         guard let username = usernameTextField.text?.lowercased() else { return }
         guard let profileImage = profileImage else { return }
         
-        guard let imageData = profileImage.jpegData(compressionQuality: 0.3) else { return }
+        let credentials = RegistrationCredentials(email: email,
+                                                  password: password,
+                                                  fullname: fullname,
+                                                  username: username,
+                                                  profileImage: profileImage)
         
-        let filename = NSUUID().uuidString
-        let ref = Storage.storage().reference(withPath: "/profile_images\(filename)")
-        
-        ref.putData(imageData, metadata: nil) { meta, error in
+        showLoader(true, withText: "Signing you up")
+    
+        AuthService.shared.createUser(credentials: credentials) { [weak self] error in
             if let error = error {
-                print("DEBUG: Failed to upload image with error \(error.localizedDescription)")
+                print("DEBUG: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self?.showLoader(false)
+                }
                 return
             }
             
-            ref.downloadURL { url, error in
-                guard let profileImageUrl = url?.absoluteString else { return }
-                
-                Auth.auth().createUser(withEmail: email, password: password) { result, error in
-                    if let error = error {
-                        print("DEBUG: Failed to create user with error: \(error.localizedDescription)")
-                        return
-                    }
-                    
-                    guard let uid = result?.user.uid else { return }
-                    
-                    let data = ["email": email,
-                                "fullname": fullname,
-                                "profileImageUrl": profileImageUrl,
-                                "uid": uid,
-                                "username": username] as [String: Any]
-                    
-                    Firestore.firestore().collection("users").document(uid).setData(data) { error in
-                        if let error = error {
-                            print("DEBUG: Failed to upload user data with error \(error.localizedDescription)")
-                            return
-                        }
-                        DispatchQueue.main.async {
-                            self.dismiss(animated: true, completion: nil)
-                        }
-                    }
-                }
+            DispatchQueue.main.async {
+                self?.showLoader(false)
+                self?.dismiss(animated: true, completion: nil)
             }
+            
+        }
+    }
+    
+    @objc private func keyboardWillShow() {
+        if view.frame.origin.y == 0 {
+            self.view.frame.origin.y -= 88
+        }
+    }
+    
+    @objc private func keyboardWillHide() {
+        if view.frame.origin.y != 0 {
+            view.frame.origin.y = 0
         }
     }
     
@@ -181,6 +176,11 @@ class RegistrationController: UIViewController {
         passwordTextField.addTarget(self, action: #selector(textDidChange), for: .editingChanged)
         fullnameTextField.addTarget(self, action: #selector(textDidChange), for: .editingChanged)
         usernameTextField.addTarget(self, action: #selector(textDidChange), for: .editingChanged)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow),
+                                               name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow),
+                                               name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
 }
