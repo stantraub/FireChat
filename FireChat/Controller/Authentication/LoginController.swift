@@ -13,11 +13,17 @@ protocol AuthenticationControllerProtocol {
     func checkFormStatus()
 }
 
+protocol AuthenticationDelegate: class {
+    func authenthicationComplete()
+}
+
 class LoginController: UIViewController {
     
     // MARK: - Properties
     
     private var viewModel = LoginViewModel()
+    
+    weak var delegate: AuthenticationDelegate?
     
     private let iconImage: UIImageView = {
         let iv = UIImageView()
@@ -81,17 +87,18 @@ class LoginController: UIViewController {
         
         AuthService.shared.logUserIn(withEmail: email, password: password) { [weak self] result, error in
             if let error = error {
-                print("DEBUG: Failed to login with error \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self?.showLoader(false)
                 }
+                self?.showError(error.localizedDescription)
                 return
             }
             
             DispatchQueue.main.async {
                 self?.showLoader(false)
-                self?.dismiss(animated: true, completion: nil)
             }
+            
+            self?.delegate?.authenthicationComplete()
         }
         
 
@@ -99,6 +106,7 @@ class LoginController: UIViewController {
     
     @objc private func handleShowSignUp() {
         let controller = RegistrationController()
+        controller.delegate = delegate
         navigationController?.pushViewController(controller, animated: true)
     }
     

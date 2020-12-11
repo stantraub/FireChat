@@ -15,6 +15,10 @@ struct Message {
     let isFromCurrentUser: Bool
     var user: User?
     
+    var chatPartnerId: String {
+        return isFromCurrentUser ? toId : fromId
+    }
+    
     init(dictionary: [String: Any]) {
         self.text = dictionary["text"] as? String ?? ""
         self.toId = dictionary["toId"] as? String ?? ""

@@ -50,8 +50,12 @@ class ChatController: UICollectionViewController {
     // MARK: - API
     
     private func fetchMessages() {
+        showLoader(true)
+        
         Service.fetchMessages(forUser: user) { [weak self] messages in
             guard let strongSelf = self else { return }
+            
+            strongSelf.showLoader(false)
             strongSelf.messages = messages
             
             DispatchQueue.main.async {

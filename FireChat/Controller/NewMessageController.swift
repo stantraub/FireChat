@@ -43,11 +43,14 @@ class NewMessageController: UITableViewController {
     // MARK: - API
     
     private func fetchUsers() {
-        Service.fetchUsers { users in
-            self.users = users
+        showLoader(true)
+        
+        Service.fetchUsers { [weak self] users in
+            self?.showLoader(false)
+            self?.users = users
             
             DispatchQueue.main.async {
-                self.tableView.reloadData()
+                self?.tableView.reloadData()
             }
         }
     }
